@@ -43,10 +43,8 @@ public class ClientServiceImp implements ClientService {
         new Thread(() -> {
             while(true) {
                 sendMessage("Hello Veaceslav!");
-
-
                 try {
-                    Thread.sleep(3000);
+                    Thread.sleep(2000);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -67,6 +65,7 @@ public class ClientServiceImp implements ClientService {
 
         MessageReceiverListenerImp messageReceiverListenerImp = new MessageReceiverListenerImp();
 
+        smppSession.setMessageReceiverListener(messageReceiverListenerImp);
         try{
             String systemId = smppSession.connectAndBind(
                 clientProperties.getHost(),
@@ -99,9 +98,15 @@ public class ClientServiceImp implements ClientService {
             registeredDelivery.setSMSCDeliveryReceipt(SMSCDeliveryReceipt.SUCCESS_FAILURE);
             TimeFormatter timeFormatter = new RelativeTimeFormatter();
 
-            String messageId = smppSession.submitShortMessage("CMT", TypeOfNumber.INTERNATIONAL,
-                    NumberingPlanIndicator.UNKNOWN, "2216", TypeOfNumber.INTERNATIONAL, NumberingPlanIndicator.UNKNOWN,
-                    "858176504657", new ESMClass(), (byte)0, (byte)1, timeFormatter.format(new Date()), null,
+            String messageId = smppSession.submitShortMessage("CMT",
+                    TypeOfNumber.INTERNATIONAL,
+                    NumberingPlanIndicator.UNKNOWN,
+                    "2216",
+                    TypeOfNumber.INTERNATIONAL,
+                    NumberingPlanIndicator.UNKNOWN,
+                    "858176504657",
+                    new ESMClass(),
+                    (byte)0, (byte)1, timeFormatter.format(new Date()), null,
                     registeredDelivery, (byte)0, new GeneralDataCoding(Alphabet.ALPHA_DEFAULT, MessageClass.CLASS1,
                             false), (byte)0, message.getBytes());
 
