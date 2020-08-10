@@ -1,7 +1,7 @@
 package com.unifun.smpp.controller;
 
-import com.unifun.smpp.model.Message;
-import com.unifun.smpp.service.messge.service.MessageService;
+import com.unifun.smpp.model.MessageInput;
+import com.unifun.smpp.service.messge.MessageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,14 +22,17 @@ public class MessageController {
 
     @GetMapping("/message")
     public @ResponseBody
-    List<Message> getMessage(@RequestParam(defaultValue = "") String message, HttpServletResponse response) throws IOException {
+    String getMessage(@RequestParam(defaultValue = "") String message, HttpServletResponse response) throws IOException {
 
-
-        messageService.setMessageBd(message);
+        messageService.setMessageBdAndQueue(message);
         response.setStatus(messageService.httpStatus());
-//        response.getWriter().write("Http message id "+messageService.httpStatus());
-        return messageService.getListBd();
+        return messageService.responsHttpMessage();
 
     }
-}
 
+    @GetMapping("/list")
+    public @ResponseBody
+    List<MessageInput> getList(){
+        return messageService.getListBd();
+    }
+}

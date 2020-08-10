@@ -12,11 +12,12 @@ import javax.persistence.*;
 @NoArgsConstructor
 @Setter
 @Getter
-public class Message {
+public class MessageInput {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
+    private int statusIO;
     public String message;
 
 }
