@@ -10,7 +10,6 @@ import org.apache.log4j.Logger;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -61,19 +60,17 @@ public class MessageServiceImp implements MessageService {
 
     }
 
-    public ArrayList<String> getListMessage() {
+    public String getListMessage() {
 
-        ArrayList<String> listMessage = new ArrayList<>();
-        int count = 0;
-        for(MessageInput message : queue){
-            listMessage.add(message.getMessage());
-            message.setStatusIO(1);
-            messageRepository.save(message);
+        String message = "";
+        if(!queue.isEmpty()) {
+            MessageInput messageInput = queue.element();
             queue.remove();
-            count++;
-            if(count >= MAX_MESSAGE_RECEIVER) break;
+            System.out.println("my message2 " + messageInput.getMessage());
+            message =  messageInput.getMessage();
+            System.out.println("my message " + message);
         }
-        return listMessage;
+        return message;
     }
 
     public String responsHttpMessage(){
@@ -82,5 +79,4 @@ public class MessageServiceImp implements MessageService {
             return "Insertion was with successful";
         }
     }
-
 }

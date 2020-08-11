@@ -1,9 +1,9 @@
 package com.unifun.smpp.service.imp;
 
+import com.unifun.smpp.repo.ServerConfigRepository;
 import com.unifun.smpp.service.ClientService;
 import com.unifun.smpp.service.messge.MessageService;
 import com.unifun.smpp.starter.ClientProperties;
-import com.unifun.smpp.repo.MessageRepository;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.apache.log4j.Logger;
@@ -19,11 +19,9 @@ import org.jsmpp.util.TimeFormatter;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
-
 @Service
 @Data
 @RequiredArgsConstructor
@@ -31,20 +29,22 @@ public class ClientServiceImp implements ClientService {
 
     private static Logger logger = Logger.getLogger(ClientServiceImp.class);
 
-    private final ClientProperties clientProperties;
-    private final MessageRepository messageRepository;
+    private final ServerConfigRepository serverConfigRepository;
     private SMPPSession smppSession;
 
     private final MessageService messageService;
-
+    private final int TIME_FOR_SEND_ONE_MESSAGE = 1000;
     Timer timer = new Timer();
     TimerTask timerTask = new TimerTask() {
         @Override
         public void run() {
             try {
-                ArrayList<String> queueMessage = messageService.getListMessage();
-                for (String listMessage : queueMessage) {
-                    sendMessage(listMessage);
+//                ArrayList<String> queueMessage = messageService.getListMessage();
+                String message = messageService.getListMessage();
+                if(!message.isEmpty()) {
+                    new Thread(() -> {
+                        sendMessage(message);
+                    }).start();
                 }
             } catch (Exception e) {
                 logger.info("Error ", e);
@@ -52,11 +52,20 @@ public class ClientServiceImp implements ClientService {
         }
     };
 
+    TimerTask timerTaskInitSesion = new TimerTask() {
+        @Override
+        public void run() {
+            smppSession = initSesionSmppClient(serverConfigRepository.getOne((long) 1).getPort(),
+                    serverConfigRepository.getOne((long) 1).getName(), serverConfigRepository.getOne((long) 1).getHost());
+        }
+    };
     @Override
     public void start() {
 
-        smppSession = initSesionSmppClient();
-        timer.scheduleAtFixedRate(timerTask, 0, 1000);
+        System.out.println("Start");
+
+        timer.scheduleAtFixedRate(timerTaskInitSesion,0,1000);
+        timer.scheduleAtFixedRate(timerTask, 1000, TIME_FOR_SEND_ONE_MESSAGE/serverConfigRepository.getOne((long) 1).getTpc());
 
     }
 
@@ -65,21 +74,19 @@ public class ClientServiceImp implements ClientService {
 
     }
 
-    private SMPPSession initSesionSmppClient() {
+    private SMPPSession initSesionSmppClient(int port, String name, String host) {
         SMPPSession smppSession = new SMPPSession();
         smppSession.setPduProcessorDegree(1);
 
         MessageReceiverListenerImp messageReceiverListenerImp = new MessageReceiverListenerImp();
-
-
         smppSession.setMessageReceiverListener(messageReceiverListenerImp);
         try {
             String systemId = smppSession.connectAndBind(
-                    clientProperties.getHost(),
-                    clientProperties.getPort(),
+                    host,
+                    port,
                     new BindParameter(
                             BindType.BIND_TRX,
-                            clientProperties.getName(),
+                            name,
                             "",
                             "cp",
                             TypeOfNumber.UNKNOWN,

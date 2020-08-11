@@ -20,6 +20,7 @@ public class MessageController {
     @Autowired
     MessageService messageService;
 
+
     @GetMapping("/message")
     public @ResponseBody
     String getMessage(@RequestParam(defaultValue = "") String message, HttpServletResponse response) throws IOException {
@@ -30,9 +31,11 @@ public class MessageController {
 
     }
 
+
     @GetMapping("/list")
     public @ResponseBody
     List<MessageInput> getList(){
+
         return messageService.getListBd();
     }
 }

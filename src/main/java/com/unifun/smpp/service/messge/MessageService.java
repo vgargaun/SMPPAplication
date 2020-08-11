@@ -2,7 +2,6 @@ package com.unifun.smpp.service.messge;
 
 import com.unifun.smpp.model.MessageInput;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public interface MessageService {
@@ -11,6 +10,6 @@ public interface MessageService {
     int httpStatus();
     void setMessageBdAndQueue(String message);
     List<MessageInput> getListBd();
-    ArrayList<String> getListMessage();
+    String getListMessage();
     String responsHttpMessage();
 }
