@@ -17,7 +17,8 @@ public class MessageInput {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
-    private int statusIO;
+    private int setQueueStatus;
+    private String setSendStatus;
     public String message;
 
 }

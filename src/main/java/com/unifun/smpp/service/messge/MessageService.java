@@ -10,6 +10,6 @@ public interface MessageService {
     int httpStatus();
     void setMessageBdAndQueue(String message);
     List<MessageInput> getListBd();
-    String getListMessage();
+    MessageInput getListMessage();
     String responsHttpMessage();
 }

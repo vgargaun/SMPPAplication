@@ -1,9 +1,10 @@
 package com.unifun.smpp.service.imp;
 
+import com.unifun.smpp.model.MessageInput;
+import com.unifun.smpp.repo.MessageRepository;
 import com.unifun.smpp.repo.ServerConfigRepository;
 import com.unifun.smpp.service.ClientService;
 import com.unifun.smpp.service.messge.MessageService;
-import com.unifun.smpp.starter.ClientProperties;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.apache.log4j.Logger;
@@ -16,6 +17,7 @@ import org.jsmpp.session.BindParameter;
 import org.jsmpp.session.SMPPSession;
 import org.jsmpp.util.RelativeTimeFormatter;
 import org.jsmpp.util.TimeFormatter;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -28,43 +30,53 @@ import java.util.TimerTask;
 public class ClientServiceImp implements ClientService {
 
     private static Logger logger = Logger.getLogger(ClientServiceImp.class);
+    private static org.slf4j.Logger LOGGER = LoggerFactory.getLogger(ClientServiceImp.class);
 
     private final ServerConfigRepository serverConfigRepository;
+    private final MessageRepository messageRepository;
     private SMPPSession smppSession;
-
+    private boolean checkSesionStatus = false;
     private final MessageService messageService;
     private final int TIME_FOR_SEND_ONE_MESSAGE = 1000;
     Timer timer = new Timer();
     TimerTask timerTask = new TimerTask() {
         @Override
         public void run() {
+            MessageInput messageInput = messageService.getListMessage();
             try {
-//                ArrayList<String> queueMessage = messageService.getListMessage();
-                String message = messageService.getListMessage();
-                if(!message.isEmpty()) {
+                if(!messageInput.getMessage().isEmpty()&&checkSesionStatus) {
                     new Thread(() -> {
-                        sendMessage(message);
+                        sendMessage(messageInput.getMessage());
+                        messageInput.setSetSendStatus("SEND");
+                        messageRepository.save(messageInput);
                     }).start();
                 }
             } catch (Exception e) {
+                messageInput.setSetSendStatus("REJECTED");
+                messageRepository.save(messageInput);
                 logger.info("Error ", e);
             }
         }
     };
 
-    TimerTask timerTaskInitSesion = new TimerTask() {
+    TimerTask timerTaskCheckSesion = new TimerTask() {
         @Override
         public void run() {
-            smppSession = initSesionSmppClient(serverConfigRepository.getOne((long) 1).getPort(),
-                    serverConfigRepository.getOne((long) 1).getName(), serverConfigRepository.getOne((long) 1).getHost());
+            if(smppSession.getSessionState().isBound()) {
+                checkSesionStatus = true;
+            } else {
+                checkSesionStatus = false;
+                smppSession = initSesionSmppClient();
+            }
+
         }
     };
     @Override
     public void start() {
 
         System.out.println("Start");
-
-        timer.scheduleAtFixedRate(timerTaskInitSesion,0,1000);
+        smppSession = initSesionSmppClient();
+        timer.scheduleAtFixedRate(timerTaskCheckSesion,0,3000);
         timer.scheduleAtFixedRate(timerTask, 1000, TIME_FOR_SEND_ONE_MESSAGE/serverConfigRepository.getOne((long) 1).getTpc());
 
     }
@@ -74,7 +86,7 @@ public class ClientServiceImp implements ClientService {
 
     }
 
-    private SMPPSession initSesionSmppClient(int port, String name, String host) {
+    private SMPPSession initSesionSmppClient() {
         SMPPSession smppSession = new SMPPSession();
         smppSession.setPduProcessorDegree(1);
 
@@ -82,11 +94,11 @@ public class ClientServiceImp implements ClientService {
         smppSession.setMessageReceiverListener(messageReceiverListenerImp);
         try {
             String systemId = smppSession.connectAndBind(
-                    host,
-                    port,
+                    serverConfigRepository.getOne((long) 1).getHost(),
+                    serverConfigRepository.getOne((long) 1).getPort(),
                     new BindParameter(
                             BindType.BIND_TRX,
-                            name,
+                            serverConfigRepository.getOne((long) 1).getName(),
                             "",
                             "cp",
                             TypeOfNumber.UNKNOWN,
@@ -99,8 +111,7 @@ public class ClientServiceImp implements ClientService {
 
             logger.info("Connected with system id: " + systemId);
         } catch (IOException e) {
-            logger.info("I/O error occurred " + e);
-
+            LOGGER.info("Bind failed on socket {}:{}. Try again... {}", serverConfigRepository.getOne((long) 1).getHost(), serverConfigRepository.getOne((long) 1).getPort(), e.getMessage());
         }
         return smppSession;
     }

@@ -60,17 +60,17 @@ public class MessageServiceImp implements MessageService {
 
     }
 
-    public String getListMessage() {
+    public MessageInput getListMessage() {
 
         String message = "";
+        MessageInput messageInput = new MessageInput();
         if(!queue.isEmpty()) {
-            MessageInput messageInput = queue.element();
-            queue.remove();
-            System.out.println("my message2 " + messageInput.getMessage());
+            messageInput = queue.remove();
+            messageInput.setSetQueueStatus(1);
+            messageRepository.save(messageInput);
             message =  messageInput.getMessage();
-            System.out.println("my message " + message);
-        }
-        return message;
+        } else messageInput.setMessage("");
+        return messageInput;
     }
 
     public String responsHttpMessage(){
