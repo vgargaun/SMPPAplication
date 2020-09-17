@@ -21,6 +21,7 @@ public class MessageReceiverListenerImp implements MessageReceiverListener {
     @Override
     public void onAcceptAlertNotification(AlertNotification alertNotification) {
 
+        logger.warn("alert notification "+ new String(alertNotification.getEsmeAddr()));
     }
 
     @Override
